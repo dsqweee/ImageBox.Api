@@ -1,0 +1,9 @@
+.vs/
+[Oo]bj/
+bin/
+storage/
+Migrations/
+
+appsettings.json
+appsettings.Development.json
+
