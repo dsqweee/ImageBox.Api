@@ -1,4 +1,4 @@
-﻿namespace ImageBox.Api.Interfaces
+﻿namespace ImageBox.DataAccess.Interfaces
 {
     public interface IRepository<T> where T : class
     {

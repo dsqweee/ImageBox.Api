@@ -1,4 +1,4 @@
-﻿namespace ImageBox.Api.DTOs.AuthDtos;
+﻿namespace ImageBox.Shared.DTOs.AuthDtos;
 
 public class UserAuthDto
 {

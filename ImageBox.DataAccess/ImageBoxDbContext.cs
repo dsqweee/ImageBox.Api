@@ -1,7 +1,7 @@
-﻿using ImageBox.Api.DataBase.Entity;
+﻿using ImageBox.DataAccess.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace ImageBox.Api.DataBase;
+namespace ImageBox.DataAccess;
 
 public class ImageBoxDbContext(DbContextOptions<ImageBoxDbContext> options) : DbContext(options)
 {
@@ -12,7 +12,7 @@ public class ImageBoxDbContext(DbContextOptions<ImageBoxDbContext> options) : Db
                     .UseIdentityColumn(); // Increment users
 
         modelBuilder.Entity<ImageEntity>()
-                    .Property(x=>x.Id)
+                    .Property(x => x.Id)
                     .UseIdentityColumn(); // Increment images
     }
 

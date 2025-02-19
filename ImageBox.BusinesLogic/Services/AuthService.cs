@@ -1,15 +1,17 @@
-﻿using ImageBox.Api.DataBase.Entity;
-using ImageBox.Api.DTOs.AuthDtos;
-using ImageBox.Api.DTOs.AuthTokenDtos;
-using ImageBox.Api.Interfaces;
+﻿using ImageBox.BusinessLogic.Interfaces;
+using ImageBox.DataAccess.Entities;
+using ImageBox.DataAccess.Interfaces;
+using ImageBox.Shared.DTOs.AuthDtos;
+using ImageBox.Shared.DTOs.AuthTokenDtos;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace ImageBox.Api.Services;
+namespace ImageBox.BusinessLogic.Services;
 
 public class AuthService(IUserRepository userRepository, IConfiguration configuration) : IAuthService
 {

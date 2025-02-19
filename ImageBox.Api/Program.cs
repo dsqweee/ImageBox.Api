@@ -1,12 +1,7 @@
-using ImageBox.Api.DataBase;
-using ImageBox.Api.Interfaces;
-using ImageBox.Api.Repositories;
-using ImageBox.Api.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using ImageBox.BusinessLogic;
+using ImageBox.DataAccess;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,20 +15,21 @@ app.Run();
 
 void RegisterServices(IServiceCollection services)
 {
-    var connectionString = builder.Configuration.GetConnectionString("PostgreSQL");
-    services.AddDbContext<ImageBoxDbContext>(options => {
-        options.UseNpgsql(connectionString);
-    });
+    var configConnectionString = builder.Configuration.GetConnectionString("PostgreSQL");
+    var configIssuer = builder.Configuration["Jwt:Issuer"];
+    var configAudience = builder.Configuration["Jwt:Audience"];
+    var configKey = builder.Configuration["Jwt:Key"];
 
-    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-        .AddJwtBearer(JwtBearerTokenOptions);
+    if (string.IsNullOrWhiteSpace(configConnectionString))
+        throw new FormatException("The connection string is missing or incorrectly specified.");
 
-    builder.Services.AddScoped<IAuthService, AuthService>();
-    builder.Services.AddSingleton<IImageService, ImageService>();
+    if (string.IsNullOrWhiteSpace(configIssuer) ||
+        string.IsNullOrWhiteSpace(configAudience) ||
+        string.IsNullOrWhiteSpace(configKey))
+        throw new FormatException("One of the Jwt strings is missing or incorrectly specified.");
 
-    builder.Services.AddScoped<IUserRepository, UserRepository>();
-    builder.Services.AddScoped<IImageRepository, ImageRepository>();
-
+    builder.Services.AddDataAccess(configConnectionString);
+    builder.Services.AddBusinessLogic(configIssuer, configAudience, configKey);
 
     services.AddControllers();
     services.AddOpenApi();
@@ -41,7 +37,6 @@ void RegisterServices(IServiceCollection services)
 
 void Configure(WebApplication app)
 {
-
     if (app.Environment.IsDevelopment())
     {
         app.MapOpenApi();
@@ -51,23 +46,4 @@ void Configure(WebApplication app)
     app.UseHttpsRedirection();
     app.UseAuthorization();
     app.MapControllers();
-}
-
-void JwtBearerTokenOptions(JwtBearerOptions opt)
-{
-    var configIssuer = builder.Configuration["Jwt:Issuer"];
-    var configAudience = builder.Configuration["Jwt:Audience"];
-    var configKey = builder.Configuration["Jwt:Key"];
-
-    var bytesKey = Encoding.UTF8.GetBytes(configKey!);
-
-    opt.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidIssuer = configIssuer,
-        ValidateAudience = true,
-        ValidAudience = configAudience,
-        ValidateLifetime = true,
-        IssuerSigningKey = new SymmetricSecurityKey(bytesKey)
-    };
 }

@@ -1,7 +1,7 @@
-﻿using ImageBox.Api.DataBase.Entity;
-using ImageBox.Api.DTOs.AuthDtos;
-using ImageBox.Api.DTOs.AuthTokenDtos;
-using ImageBox.Api.Interfaces;
+﻿using ImageBox.BusinessLogic.Interfaces;
+using ImageBox.DataAccess.Entities;
+using ImageBox.Shared.DTOs.AuthDtos;
+using ImageBox.Shared.DTOs.AuthTokenDtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

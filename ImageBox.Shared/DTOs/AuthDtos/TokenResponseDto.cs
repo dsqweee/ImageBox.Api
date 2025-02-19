@@ -1,4 +1,4 @@
-﻿namespace ImageBox.Api.DTOs.AuthTokenDtos;
+﻿namespace ImageBox.Shared.DTOs.AuthTokenDtos;
 
 public class TokenResponseDto
 {

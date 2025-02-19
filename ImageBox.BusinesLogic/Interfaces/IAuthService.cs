@@ -1,8 +1,8 @@
-﻿using ImageBox.Api.DataBase.Entity;
-using ImageBox.Api.DTOs.AuthDtos;
-using ImageBox.Api.DTOs.AuthTokenDtos;
+﻿using ImageBox.Shared.DTOs.AuthTokenDtos;
+using ImageBox.Shared.DTOs.AuthDtos;
+using ImageBox.DataAccess.Entities;
 
-namespace ImageBox.Api.Interfaces;
+namespace ImageBox.BusinessLogic.Interfaces;
 
 public interface IAuthService
 {

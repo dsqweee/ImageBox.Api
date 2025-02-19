@@ -1,8 +1,7 @@
-﻿using ImageBox.Api.DataBase;
-using ImageBox.Api.Interfaces;
+﻿using ImageBox.DataAccess.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace ImageBox.Api.Repositories;
+namespace ImageBox.DataAccess.Repositories;
 
 public class Repository<T>(ImageBoxDbContext dbContext) : IRepository<T> where T : class
 {
@@ -29,8 +28,8 @@ public class Repository<T>(ImageBoxDbContext dbContext) : IRepository<T> where T
         await _dbContext.SaveChangesAsync();
     }
 
-    public async Task<T> GetByIdAsync(long imageId)
+    public async Task<T> GetByIdAsync(long Id)
     {
-        return await _dbContext.Set<T>().FindAsync(imageId);
+        return await _dbContext.Set<T>().FindAsync(Id);
     }
 }

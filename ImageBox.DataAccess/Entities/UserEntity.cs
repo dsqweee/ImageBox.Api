@@ -1,4 +1,4 @@
-﻿namespace ImageBox.Api.DataBase.Entity;
+﻿namespace ImageBox.DataAccess.Entities;
 
 public class UserEntity
 {
