@@ -1,11 +1,12 @@
-﻿namespace ImageBox.BusinessLogic.Interfaces;
+﻿using ImageBox.Shared.Interfaces;
+
+namespace ImageBox.BusinessLogic.Interfaces;
 
 public interface IImageService
 {
-    Task<bool> VerifyImageAsync(MemoryStream memoryStream);
-    Task<(string imagePath, string imageHash)> UploadImageAsync(MemoryStream memoryStream);
-    string GenerateRandomHash();
-    string GetEncodedFormat();
+    bool VerifyImageAsync(IFileData fileData);
+    Task<(string? imagePath, string? imageHash)> UploadImageAsync(IFileData fileData);
+    string GetEncodingFormat();
     bool DeleteImageAsync(string Path);
     Task<byte[]> ImageToByteArray(string filePath);
 }

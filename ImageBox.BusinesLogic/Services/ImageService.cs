@@ -1,11 +1,15 @@
-﻿using ImageBox.BusinessLogic.Interfaces;
+﻿using FileSignatures;
+using ImageBox.BusinessLogic.Interfaces;
+using ImageBox.Shared.Interfaces;
+using Microsoft.AspNetCore.Http;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using System.IO;
 using System.Security.Cryptography;
 
 namespace ImageBox.BusinessLogic.Services;
 
-public class ImageService : IImageService
+public class ImageService(IFileFormatInspector fileFormatInspector) : IImageService
 {
     private readonly string DirectoryImage = "storage";
     private readonly JpegFormat EncodeFormat = JpegFormat.Instance;
@@ -15,7 +19,7 @@ public class ImageService : IImageService
         Quality = 85
     };
 
-    public string GetEncodedFormat()
+    public string GetEncodingFormat()
     {
         return EncodeFormat.Name.ToLower();
     }
@@ -37,7 +41,7 @@ public class ImageService : IImageService
 
     private string GenerateFilePath(string fileHash)
     {
-        var fileFormat = GetEncodedFormat();
+        var fileFormat = GetEncodingFormat();
         var directory = Path.Combine(fileHash[0..2], fileHash[2..4], fileHash[4..6]);
         var fullPath = Path.Combine(DirectoryImage, directory, $"{fileHash}.{fileFormat}");
 
@@ -45,54 +49,47 @@ public class ImageService : IImageService
         return fullPath;
     }
 
-    public async Task<bool> VerifyImageAsync(MemoryStream memoryStream)
+
+    public bool VerifyImageAsync(IFileData fileData)
     {
-        using (memoryStream)
-        {
-            try
-            {
-                await Image.DetectFormatAsync(memoryStream);
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-            return true;
-        }
+        using var fileStream = fileData.OpenReadStream();
+        FileFormat? format = fileFormatInspector.DetermineFileFormat(fileStream);
+
+        if(format is not FileSignatures.Formats.Image)
+            return false;
+
+        return true;
     }
 
 
-    private async Task<bool> SaveImageToStorageAsync(MemoryStream memoryStream, string filePath)
+    private async Task<bool> SaveImageToStorageAsync(IFileData fileData, string filePath)
     {
-        using (var image = Image.Load(memoryStream))
+        using var fileStream = fileData.OpenReadStream();
+        using var image = Image.Load(fileStream);
+
+        try
         {
-            try
-            {
-                await image.SaveAsync(filePath, EncodeSettings);
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-            return true;
+            await image.SaveAsync(filePath, EncodeSettings);
         }
+        catch (Exception)
+        {
+            return false;
+        }
+        return true;
     }
 
-    public async Task<(string imagePath, string imageHash)> UploadImageAsync(MemoryStream memoryStream)
+    public async Task<(string? imagePath, string? imageHash)> UploadImageAsync(IFileData file)
     {
-        using (memoryStream)
-        {
-            string fileHash = GenerateRandomHash();
+        string fileHash = GenerateRandomHash();
 
-            string filePath = GenerateFilePath(fileHash);
+        string filePath = GenerateFilePath(fileHash);
 
-            bool saveStatus = await SaveImageToStorageAsync(memoryStream, filePath);
+        bool saveStatus = await SaveImageToStorageAsync(file, filePath);
 
-            if (!saveStatus)
-                return (null, null);
+        if (!saveStatus)
+            return (null, null);
 
-            return (filePath, fileHash);
-        }
+        return (filePath, fileHash);
     }
 
     public bool DeleteImageAsync(string Path)

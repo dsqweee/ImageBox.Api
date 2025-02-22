@@ -11,4 +11,6 @@ public class ImageEntity
 
     public long UserEntityId { get; set; }
     public UserEntity UserEntity { get; set; }
+
+    public ICollection<TagEntity> Tags { get; set; } = new List<TagEntity>();
 }

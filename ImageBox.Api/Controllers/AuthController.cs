@@ -19,7 +19,7 @@ public class AuthController(IAuthService authService) : ControllerBase
         if (user is null)
             return BadRequest("Username already exists.");
 
-        return Ok(user);
+        return Ok();
     }
 
     [HttpPost("login")]
@@ -40,7 +40,6 @@ public class AuthController(IAuthService authService) : ControllerBase
         return Ok("You are Authorization!");
     }
 
-
     [Authorize(Roles = "Admin")]
     [HttpGet("admin-only")]
     public IActionResult AdminOnlyEndpoint()
@@ -49,6 +48,7 @@ public class AuthController(IAuthService authService) : ControllerBase
     }
 
     [HttpPost("refresh-token")]
+    [Authorize]
     public async Task<ActionResult> RefreshToken(RefreshTokenRequestDto request)
     {
         var result = await authService.RefreshTokensAsync(request);

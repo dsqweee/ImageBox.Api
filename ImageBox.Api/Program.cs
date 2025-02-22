@@ -1,3 +1,4 @@
+using ImageBox.Api;
 using ImageBox.BusinessLogic;
 using ImageBox.DataAccess;
 using Microsoft.EntityFrameworkCore;
@@ -32,7 +33,11 @@ void RegisterServices(IServiceCollection services)
     builder.Services.AddBusinessLogic(configIssuer, configAudience, configKey);
 
     services.AddControllers();
-    services.AddOpenApi();
+
+    services.AddOpenApi(options =>
+    {
+        options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+    });
 }
 
 void Configure(WebApplication app)
@@ -40,7 +45,11 @@ void Configure(WebApplication app)
     if (app.Environment.IsDevelopment())
     {
         app.MapOpenApi();
-        app.MapScalarApiReference();
+        app.MapScalarApiReference(x=>
+        {
+            x.WithTheme(ScalarTheme.DeepSpace);
+            x.WithModels(false);
+        });
     }
 
     app.UseHttpsRedirection();

@@ -1,6 +1,6 @@
 @ImageBox.Api_HostAddress = http://localhost:5182
 
-GET {{ImageBox.Api_HostAddress}}/weatherforecast/
+GET {{ImageBox.Api_HostAddress}}/image/5
 Accept: application/json
 
 ###

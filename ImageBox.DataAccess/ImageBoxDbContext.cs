@@ -14,8 +14,17 @@ public class ImageBoxDbContext(DbContextOptions<ImageBoxDbContext> options) : Db
         modelBuilder.Entity<ImageEntity>()
                     .Property(x => x.Id)
                     .UseIdentityColumn(); // Increment images
+
+        modelBuilder.Entity<TagEntity>()
+                    .Property(x => x.Id)
+                    .UseIdentityColumn(); // Increment tags
+
+        modelBuilder.Entity<TagEntity>()
+                    .HasIndex(x => x.Tag)
+                    .IsUnique();          // Unique tags
     }
 
     public DbSet<UserEntity> users { get; set; }
     public DbSet<ImageEntity> images { get; set; }
+    public DbSet<TagEntity> tags { get; set; }
 }

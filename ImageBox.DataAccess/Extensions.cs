@@ -11,6 +11,7 @@ public static class Extensions
     {
         serviceCollection.AddScoped<IUserRepository, UserRepository>();
         serviceCollection.AddScoped<IImageRepository, ImageRepository>();
+        serviceCollection.AddScoped<ITagRepository, TagRepository>();
 
         serviceCollection.AddDbContext<ImageBoxDbContext>(options => {
             options.UseNpgsql(connectionString);

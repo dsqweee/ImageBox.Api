@@ -1,4 +1,6 @@
-﻿using ImageBox.BusinessLogic.Interfaces;
+﻿using FileSignatures;
+using FileSignatures.Formats;
+using ImageBox.BusinessLogic.Interfaces;
 using ImageBox.BusinessLogic.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,15 +19,19 @@ public static class Extensions
         var bytesKey = Encoding.UTF8.GetBytes(configKey!);
 
         serviceCollection.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(x=> x.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidIssuer = configIssuer,
-                ValidateAudience = true,
-                ValidAudience = configAudience,
-                ValidateLifetime = true,
-                IssuerSigningKey = new SymmetricSecurityKey(bytesKey)
-            });
+                         .AddJwtBearer(x=> x.TokenValidationParameters = new TokenValidationParameters
+                         {
+                             ValidateIssuer = true,
+                             ValidIssuer = configIssuer,
+                             ValidateAudience = true,
+                             ValidAudience = configAudience,
+                             ValidateLifetime = true,
+                             IssuerSigningKey = new SymmetricSecurityKey(bytesKey)
+                         });
+
+        var recognised = FileFormatLocator.GetFormats().OfType<Image>();
+        var inspector = new FileFormatInspector(recognised);
+        serviceCollection.AddSingleton<IFileFormatInspector>(inspector);
 
         return serviceCollection;
     }

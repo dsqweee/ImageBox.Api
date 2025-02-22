@@ -11,8 +11,21 @@ public class ImageRepository : Repository<ImageEntity>, IImageRepository
         
     }
 
-    public async Task<ImageEntity> GetImageByHash(string imageHash)
+    public async Task<ImageEntity?> GetImageByHashAsync(string imageHash)
     {
         return await _dbContext.images.FirstOrDefaultAsync(x => x.FileHash == imageHash);
+    }
+
+    public async Task<List<ImageEntity>> GetImagesByTagsAsync(string[] tags)
+    {
+        return await _dbContext.images.Include(x => x.Tags)
+                                      .Where(image => image.Tags.Any(tag => tags.Contains(tag.Tag)))
+                                      .ToListAsync();
+    }
+
+    public async Task<ImageEntity?> GetImageIncludeTagsByIdAsync(long imageId)
+    {
+        return await _dbContext.images.Include(x => x.Tags)
+                                      .FirstOrDefaultAsync(x=>x.Id == imageId);
     }
 }
