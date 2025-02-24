@@ -1,7 +1,6 @@
 ﻿using ImageBox.BusinessLogic.Interfaces;
 using ImageBox.DataAccess.Entities;
 using ImageBox.DataAccess.Interfaces;
-using ImageBox.DataAccess.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -10,7 +9,7 @@ namespace ImageBox.Api.Controllers;
 
 [Route("[controller]")]
 [ApiController]
-public class ImageController(IImageService imageService, IImageRepository imageRepository, ITagRepository tagRepository) : ControllerBase
+public class ImageController(IImageS3Service imageService, IImageRepository imageRepository, ITagRepository tagRepository) : ControllerBase
 {
 
     [HttpPost("upload")]
@@ -22,12 +21,11 @@ public class ImageController(IImageService imageService, IImageRepository imageR
         bool isImage = imageService.VerifyImageAsync(fileData);
 
         if (!isImage)
+        {
             return BadRequest("File is not image.");
+        }
 
-        (string? imagePath, string? imageHash) imageInfo = await imageService.UploadImageAsync(fileData);
-
-        if (imageInfo.imagePath is null || imageInfo.imageHash is null)
-            return BadRequest("Failed to save the image. Please try again later.");
+        var imageHash = await imageService.UploadFileAsync(fileData);
 
         string imageFormat = imageService.GetEncodingFormat();
 
@@ -42,10 +40,12 @@ public class ImageController(IImageService imageService, IImageRepository imageR
             tagEntities.Add(tagDb);
         }
 
+        var fileUrl = await imageService.GetImageLinkByIdAsync(imageHash);
+
         var imageEntity = new ImageEntity
         {
-            FileHash = imageInfo.imageHash,
-            FilePath = imageInfo.imagePath,
+            FileHash = imageHash,
+            FilePath = fileUrl,
             FileSize = 0,
             FileType = imageFormat,
             UserEntityId = userId,
@@ -68,12 +68,16 @@ public class ImageController(IImageService imageService, IImageRepository imageR
 
         var existImage = await imageRepository.GetByIdAsync(id);
         if (existImage is null || claimUserId != existImage.UserEntityId)
+        {
             return BadRequest("Image is not found.");
+        }
 
-        bool deleteStatus = imageService.DeleteImageAsync(existImage.FilePath);
+        var deleteStatus = await imageService.DeleteImageByIdAsync(existImage.FileHash);
 
-        if (!deleteStatus)
+        if (deleteStatus == System.Net.HttpStatusCode.BadRequest)
+        {
             return BadRequest("Failed to delete the image. Please try again later.");
+        }
 
         await imageRepository.DeleteAsync(id);
 
@@ -85,11 +89,10 @@ public class ImageController(IImageService imageService, IImageRepository imageR
     {
         var imageDb = await imageRepository.GetByIdAsync(id);
         if (imageDb is null)
+        {
             return BadRequest("Image is not found.");
-
-        var imageBytes = await imageService.ImageToByteArray(imageDb.FilePath);
-
-        return File(imageBytes, "image/jpeg");
+        }
+        return Ok(imageDb.FilePath);
     }
 
 

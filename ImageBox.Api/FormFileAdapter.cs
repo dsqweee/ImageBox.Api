@@ -12,5 +12,7 @@ public class FormFileAdapter : IFileData
     }
 
     public Stream OpenReadStream()
-        => _file.OpenReadStream();
+    {
+        return _file.OpenReadStream();
+    }
 }

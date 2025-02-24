@@ -39,7 +39,9 @@ public class AuthService(IUserRepository userRepository, IConfiguration configur
     {
         var userExist = await userRepository.GetExistUserByUsernameAsync(request.Username);
         if (userExist)
+        {
             return null;
+        }
 
         var user = new UserEntity();
         var hashedPassword = new PasswordHasher<UserEntity>()
@@ -124,7 +126,9 @@ public class AuthService(IUserRepository userRepository, IConfiguration configur
     {
         var user = await ValidateRefreshTokenAsync(request.UserId, request.RefreshToken);
         if (user is null)
+        {
             return null;
+        }
 
         return await CreateTokenResponse(user);
     }

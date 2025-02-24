@@ -17,7 +17,9 @@ public class AuthController(IAuthService authService) : ControllerBase
         var user = await authService.RegisterAsync(request);
 
         if (user is null)
+        {
             return BadRequest("Username already exists.");
+        }
 
         return Ok();
     }
@@ -28,7 +30,9 @@ public class AuthController(IAuthService authService) : ControllerBase
         var resultResponse = await authService.LoginAsync(request);
 
         if (resultResponse is null)
+        {
             return BadRequest("Username or Password is wrong.");
+        }
 
         return Ok(resultResponse);
     }
@@ -53,7 +57,9 @@ public class AuthController(IAuthService authService) : ControllerBase
     {
         var result = await authService.RefreshTokensAsync(request);
         if (result is null || result.AccessToken is null || result.RefreshToken is null)
+        {
             return BadRequest("Invalid refresh token.");
+        }
 
         return Ok(result);
     }

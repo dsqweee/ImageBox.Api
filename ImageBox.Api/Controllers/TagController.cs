@@ -14,7 +14,9 @@ public class TagController(ITagRepository tagRepository, IImageRepository imageR
         tag = tag.ToLower();
         var existTag = await tagRepository.GetTagByName(tag);
         if (existTag is not null)
+        {
             return BadRequest("Tag is already added.");
+        }
 
         var tagEntity = new TagEntity { Tag = tag };
         await tagRepository.CreateAsync(tagEntity);
@@ -28,7 +30,9 @@ public class TagController(ITagRepository tagRepository, IImageRepository imageR
         tag = tag.ToLower();
         var existTag = await tagRepository.GetTagByName(tag);
         if (existTag is null)
+        {
             return BadRequest("Tag was not found.");
+        }
 
         return Ok(existTag);
     }

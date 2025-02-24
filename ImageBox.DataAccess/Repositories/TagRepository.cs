@@ -12,7 +12,7 @@ public class TagRepository : Repository<TagEntity>, ITagRepository
     }
 
 
-    public async Task<TagEntity> GetTagByName(string tag)
+    public async Task<TagEntity?> GetTagByName(string tag)
     {
         return await _dbContext.tags.FirstOrDefaultAsync(x => x.Tag == tag);
     }

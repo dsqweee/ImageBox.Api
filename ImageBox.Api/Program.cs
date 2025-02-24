@@ -1,8 +1,15 @@
+using Amazon;
+using Amazon.Extensions.NETCore.Setup;
+using Amazon.S3;
 using ImageBox.Api;
 using ImageBox.BusinessLogic;
 using ImageBox.DataAccess;
+using ImageBox.Shared.Config;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Scalar.AspNetCore;
+using System.Security.Cryptography;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,21 +23,8 @@ app.Run();
 
 void RegisterServices(IServiceCollection services)
 {
-    var configConnectionString = builder.Configuration.GetConnectionString("PostgreSQL");
-    var configIssuer = builder.Configuration["Jwt:Issuer"];
-    var configAudience = builder.Configuration["Jwt:Audience"];
-    var configKey = builder.Configuration["Jwt:Key"];
-
-    if (string.IsNullOrWhiteSpace(configConnectionString))
-        throw new FormatException("The connection string is missing or incorrectly specified.");
-
-    if (string.IsNullOrWhiteSpace(configIssuer) ||
-        string.IsNullOrWhiteSpace(configAudience) ||
-        string.IsNullOrWhiteSpace(configKey))
-        throw new FormatException("One of the Jwt strings is missing or incorrectly specified.");
-
-    builder.Services.AddDataAccess(configConnectionString);
-    builder.Services.AddBusinessLogic(configIssuer, configAudience, configKey);
+    builder.Services.AddDataAccess(builder.Configuration);
+    builder.Services.AddBusinessLogic(builder.Configuration);
 
     services.AddControllers();
 

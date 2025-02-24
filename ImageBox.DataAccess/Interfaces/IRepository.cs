@@ -4,7 +4,7 @@
     {
         Task CreateAsync(T entity);
         Task DeleteAsync(long Id);
-        Task<T> GetByIdAsync(long Id);
+        Task<T?> GetByIdAsync(long Id);
         Task UpdateAsync(T entity);
     }
 }

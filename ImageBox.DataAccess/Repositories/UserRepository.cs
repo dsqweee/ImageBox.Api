@@ -16,7 +16,7 @@ public class UserRepository : Repository<UserEntity>, IUserRepository
         return await _dbContext.users.AnyAsync(x=>x.Username == username);
     }
 
-    public async Task<UserEntity> GetUserByUsernameAsync(string username)
+    public async Task<UserEntity?> GetUserByUsernameAsync(string username)
     {
         return await _dbContext.users.FirstOrDefaultAsync(x=>x.Username == username);
     }
