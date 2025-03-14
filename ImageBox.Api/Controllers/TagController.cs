@@ -6,20 +6,20 @@ namespace ImageBox.Api.Controllers;
 
 [Route("[controller]")]
 [ApiController]
-public class TagController(ITagRepository tagRepository, IImageRepository imageRepository) : ControllerBase
+public class TagController(ITagRepository tagRepository) : ControllerBase
 {
     [HttpPost("{tag}")]
     public async Task<ActionResult> CreateTag(string tag)
     {
         tag = tag.ToLower();
-        var existTag = await tagRepository.GetTagByName(tag);
+        var existTag = await tagRepository.GetTagByNameAsync(tag);
         if (existTag is not null)
         {
             return BadRequest("Tag is already added.");
         }
 
         var tagEntity = new TagEntity { Tag = tag };
-        await tagRepository.CreateAsync(tagEntity);
+        await tagRepository.CreateTagAsync(tagEntity);
 
         return Ok();
     }
@@ -28,7 +28,7 @@ public class TagController(ITagRepository tagRepository, IImageRepository imageR
     public async Task<ActionResult> GetTag(string tag)
     {
         tag = tag.ToLower();
-        var existTag = await tagRepository.GetTagByName(tag);
+        var existTag = await tagRepository.GetTagByNameAsync(tag);
         if (existTag is null)
         {
             return BadRequest("Tag was not found.");

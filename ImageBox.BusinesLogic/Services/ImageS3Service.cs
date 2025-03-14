@@ -4,7 +4,6 @@ using FileSignatures;
 using ImageBox.BusinessLogic.Interfaces;
 using ImageBox.Shared.Config;
 using ImageBox.Shared.Interfaces;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
@@ -14,8 +13,22 @@ using System.Net;
 
 namespace ImageBox.BusinessLogic.Services;
 
-public class ImageS3Service(IAmazonS3 s3client, IOptions<S3Settings> s3settings, IFileFormatInspector fileFormatInspector) : IImageS3Service
+public class ImageS3Service : IImageS3Service
 {
+    private readonly IAmazonS3 _s3Client;
+    private readonly IOptions<S3Settings> _s3settings;
+    private readonly IFileFormatInspector _fileFormatInspector;
+
+    public ImageS3Service(IAmazonS3 s3Client, IOptions<S3Settings> s3settings, IFileFormatInspector fileFormatInspector)
+    {
+        _s3Client = s3Client;
+        _s3settings = s3settings;
+        _fileFormatInspector = fileFormatInspector;
+    }
+
+    private const int desiredWidth = 1920;
+    private const int desiredHeight = 1080;
+
     private readonly IImageFormat EncodeFormat = WebpFormat.Instance;
     private readonly ImageEncoder EncodeSettings = new WebpEncoder()
     {
@@ -28,45 +41,68 @@ public class ImageS3Service(IAmazonS3 s3client, IOptions<S3Settings> s3settings,
         NearLossless = false, // Включить режим "почти без потерь"
         NearLosslessQuality = 75
     };
+    
 
     public string GetEncodingFormat()
     {
         return EncodeFormat.Name.ToLower();
     }
 
-    private (int newWidth, int newHeight) ResizeProportionally(int originalWidth, int originalHeight)
+    private void ResizeProportionally(ref int originalWidth, ref int originalHeight)
     {
-        int desiredWidth = 1920;
-        int desiredHeight = 1080;
-
         double scale;
 
         if (originalWidth > originalHeight)
         {
             scale = (double)desiredWidth / originalWidth;
-            return (desiredWidth, (int)(originalHeight * scale));
+
+            originalWidth = desiredWidth;
+            originalHeight = (int) (originalHeight * scale);
         }
         else
         {
             scale = (double)desiredHeight / originalHeight;
-            return ((int)(originalWidth * scale), desiredHeight);
+
+            originalWidth = (int) (originalWidth * scale);
+            originalHeight = desiredHeight;
         }
     }
 
+    private void MutateImage(Image image)
+    {
+        int width = image.Width;
+        int height = image.Height;
 
-    public async Task<string> UploadFileAsync(IFileData file)
+        if (image.Width > 1920 || image.Height > 1080)
+        {
+            ResizeProportionally(ref width, ref height);
+            image.Mutate(x => x.Resize(width, height));
+        }
+    }
+
+    //private async Task<MemoryStream> SaveImageToStreamAsync(IFileData file)
+    //{
+    //    using var memoryStream = new MemoryStream();
+    //    using var image = Image.Load(file.OpenReadStream());
+
+    //    MutateImage(image);
+
+    //    await image.SaveAsync(memoryStream, EncodeSettings);
+    //    return memoryStream;
+    //}
+
+
+    public async Task<string?> UploadFileAsync(IFileData file)
     {
         var key = Guid.NewGuid().ToString();
         var encodeFormat = GetEncodingFormat();
 
+        //using var imageStream = await SaveImageToStreamAsync(file);
+
         using var memoryStream = new MemoryStream();
         using var image = Image.Load(file.OpenReadStream());
 
-        if(image.Width > 1920 || image.Height > 1080)
-        {
-            (int newWidth, int newHeight) sizes = ResizeProportionally(image.Width, image.Height);
-            image.Mutate(x => x.Resize(sizes.newWidth, sizes.newHeight));
-        }
+        MutateImage(image);
 
         await image.SaveAsync(memoryStream, EncodeSettings);
 
@@ -74,11 +110,11 @@ public class ImageS3Service(IAmazonS3 s3client, IOptions<S3Settings> s3settings,
         {
             var putRequest = new PutObjectRequest
             {
-                BucketName = s3settings.Value.BucketName,
+                BucketName = _s3settings.Value.BucketName,
                 Key = $"{key}.{encodeFormat}",
                 InputStream = memoryStream
             };
-            var response = await s3client.PutObjectAsync(putRequest);
+            var response = await _s3Client.PutObjectAsync(putRequest);
         }
         catch (Exception)
         {
@@ -88,10 +124,10 @@ public class ImageS3Service(IAmazonS3 s3client, IOptions<S3Settings> s3settings,
         return key;
     }
 
-    public async Task<string> GetImageLinkByIdAsync(string id)
+    public string GetImageLinkById(string id)
     {
         var encodeFormat = GetEncodingFormat();
-        return $"{s3settings.Value.Endpoint}/{s3settings.Value.BucketName}/{id}.{encodeFormat}";
+        return $"{_s3settings.Value.Endpoint}/{_s3settings.Value.BucketName}/{id}.{encodeFormat}";
     }
 
     public async Task<HttpStatusCode> DeleteImageByIdAsync(string id)
@@ -102,11 +138,11 @@ public class ImageS3Service(IAmazonS3 s3client, IOptions<S3Settings> s3settings,
         {
             var putRequest = new DeleteObjectRequest
             {
-                BucketName = s3settings.Value.BucketName,
+                BucketName = _s3settings.Value.BucketName,
                 Key = $"{id}.{encodeFormat}"
             };
 
-            var response = await s3client.DeleteObjectAsync(putRequest);
+            var response = await _s3Client.DeleteObjectAsync(putRequest);
         }
         catch (Exception)
         {
@@ -120,11 +156,8 @@ public class ImageS3Service(IAmazonS3 s3client, IOptions<S3Settings> s3settings,
     public bool VerifyImageAsync(IFileData fileData)
     {
         using var fileStream = fileData.OpenReadStream();
-        FileFormat? format = fileFormatInspector.DetermineFileFormat(fileStream);
+        FileFormat? format = _fileFormatInspector.DetermineFileFormat(fileStream);
 
-        if (format is not FileSignatures.Formats.Image)
-            return false;
-
-        return true;
+        return format is FileSignatures.Formats.Image;
     }
 }

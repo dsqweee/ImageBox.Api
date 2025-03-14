@@ -30,8 +30,9 @@ public static class Extensions
     private static void AddLifeTimeServices(IServiceCollection serviceCollection)
     {
         serviceCollection.AddScoped<IAuthService, AuthService>();
-        serviceCollection.AddSingleton<IImageFileService, ImageFileService>();
-        serviceCollection.AddSingleton<IImageS3Service, ImageS3Service>();
+        serviceCollection.AddScoped<IImageFileService, ImageFileService>();
+        serviceCollection.AddScoped<IImageS3Service, ImageS3Service>();
+        serviceCollection.AddScoped<ITagService, TagService>();
     }
 
 
@@ -84,6 +85,4 @@ public static class Extensions
         IFileFormatInspector inspector = new FileFormatInspector(recognised);
         serviceCollection.AddSingleton(inspector);
     }
-
-    
 }

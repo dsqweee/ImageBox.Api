@@ -1,6 +1,6 @@
 ﻿using ImageBox.BusinessLogic.Interfaces;
-using ImageBox.DataAccess.Entities;
 using ImageBox.DataAccess.Interfaces;
+using ImageBox.Shared.DTOs.ImageDtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -9,13 +9,13 @@ namespace ImageBox.Api.Controllers;
 
 [Route("[controller]")]
 [ApiController]
-public class ImageController(IImageS3Service imageService, IImageRepository imageRepository, ITagRepository tagRepository) : ControllerBase
+public class ImageController(IImageS3Service imageService, IImageRepository imageRepository, ITagService tagService, IUserRepository userRepository) : ControllerBase
 {
 
     [HttpPost("upload")]
     [RequestSizeLimit(10_000_000)]
     [Authorize]
-    public async Task<ActionResult> UploadImage(IFormFile file, long userId, [FromQuery] string[] tags)
+    public async Task<ActionResult> UploadImage(IFormFile file, [FromQuery] UploadImageDto UploadImageDto)
     {
         var fileData = new FormFileAdapter(file);
         bool isImage = imageService.VerifyImageAsync(fileData);
@@ -25,36 +25,28 @@ public class ImageController(IImageS3Service imageService, IImageRepository imag
             return BadRequest("File is not image.");
         }
 
-        var imageHash = await imageService.UploadFileAsync(fileData);
+        var user = await userRepository.GetUserByIdAsync(UploadImageDto.UserId);
 
-        string imageFormat = imageService.GetEncodingFormat();
-
-        List<TagEntity> tagEntities = new List<TagEntity>();
-
-        foreach (var tag in tags)
+        if(user is null)
         {
-            var tagDb = await tagRepository.GetTagByName(tag);
-            if (tagDb is null)
-                tagDb = new TagEntity { Tag = tag };
-
-            tagEntities.Add(tagDb);
+            return BadRequest("User not found");
         }
 
-        var fileUrl = await imageService.GetImageLinkByIdAsync(imageHash);
+        var imageHash = await imageService.UploadFileAsync(fileData);
 
-        var imageEntity = new ImageEntity
+        if (string.IsNullOrEmpty(imageHash))
         {
-            FileHash = imageHash,
-            FilePath = fileUrl,
-            FileSize = 0,
-            FileType = imageFormat,
-            UserEntityId = userId,
-            Tags = tagEntities
-        };
+            return BadRequest("Failed to upload image.");
+        }
 
-        await imageRepository.CreateAsync(imageEntity);
+        string imageFormat = imageService.GetEncodingFormat();
+        string imageUrl = imageService.GetImageLinkById(imageHash);
 
-        return Ok();
+        var tags = await tagService.VerifyTags(UploadImageDto.Tags);
+
+        await imageRepository.CreateImageAsync(imageHash, imageUrl, imageFormat, UploadImageDto.UserId, tags);
+
+        return Ok(new { ImageId = imageHash, Url = imageUrl });
     }
 
     [HttpDelete("{id:long}")]
@@ -66,7 +58,7 @@ public class ImageController(IImageS3Service imageService, IImageRepository imag
         long claimUserId = Convert.ToInt64(claimUserIdentifier.Value);
 
 
-        var existImage = await imageRepository.GetByIdAsync(id);
+        var existImage = await imageRepository.GetImageByIdAsync(id);
         if (existImage is null || claimUserId != existImage.UserEntityId)
         {
             return BadRequest("Image is not found.");
@@ -79,20 +71,20 @@ public class ImageController(IImageS3Service imageService, IImageRepository imag
             return BadRequest("Failed to delete the image. Please try again later.");
         }
 
-        await imageRepository.DeleteAsync(id);
+        await imageRepository.DeleteImageAsync(id);
 
-        return Ok();
+        return NoContent();
     }
 
     [HttpGet("{id:long}")]
     public async Task<ActionResult> GetImage(long id)
     {
-        var imageDb = await imageRepository.GetByIdAsync(id);
+        var imageDb = await imageRepository.GetImageByIdAsync(id);
         if (imageDb is null)
         {
             return BadRequest("Image is not found.");
         }
-        return Ok(imageDb.FilePath);
+        return Content(imageDb.FilePath, "image/webp");
     }
 
 

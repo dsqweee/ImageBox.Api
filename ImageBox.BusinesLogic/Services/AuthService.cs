@@ -13,11 +13,21 @@ using System.Text;
 
 namespace ImageBox.BusinessLogic.Services;
 
-public class AuthService(IUserRepository userRepository, IConfiguration configuration) : IAuthService
+public class AuthService : IAuthService
 {
+    private readonly IUserRepository _userRepository;
+    private readonly IConfiguration _configuration;
+
+    public AuthService(IUserRepository userRepository, IConfiguration configuration)
+    {
+        _userRepository = userRepository;
+        _configuration = configuration;
+    }
+
     public async Task<TokenResponseDto?> LoginAsync(UserAuthDto request)
     {
-        var user = await userRepository.GetUserByUsernameAsync(request.Username);
+
+        var user = await _userRepository.GetUserByUsernameAsync(request.Username);
         if (user is null)
         {
             return null;
@@ -37,7 +47,7 @@ public class AuthService(IUserRepository userRepository, IConfiguration configur
 
     public async Task<UserEntity?> RegisterAsync(UserAuthDto request)
     {
-        var userExist = await userRepository.GetExistUserByUsernameAsync(request.Username);
+        var userExist = await _userRepository.GetExistUserByUsernameAsync(request.Username);
         if (userExist)
         {
             return null;
@@ -50,7 +60,7 @@ public class AuthService(IUserRepository userRepository, IConfiguration configur
         user.Username = request.Username;
         user.PasswordHash = hashedPassword;
 
-        await userRepository.CreateAsync(user);
+        await _userRepository.CreateUserAsync(user);
 
         return user;
     }
@@ -79,15 +89,15 @@ public class AuthService(IUserRepository userRepository, IConfiguration configur
         };
 
 
-        var configKey = configuration["Jwt:Key"]!;
+        var configKey = _configuration["Jwt:Key"]!;
         var bytesKey = Encoding.UTF8.GetBytes(configKey);
 
         var key = new SymmetricSecurityKey(bytesKey);
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
 
 
-        var configIssuer = configuration["Jwt:Issuer"]!;
-        var configAudience = configuration["Jwt:Audience"]!;
+        var configIssuer = _configuration["Jwt:Issuer"]!;
+        var configAudience = _configuration["Jwt:Audience"]!;
         var expires = DateTime.UtcNow.AddDays(1);
 
         var tokenDescriptor = new JwtSecurityToken(
@@ -117,7 +127,7 @@ public class AuthService(IUserRepository userRepository, IConfiguration configur
         user.RefreshToken = refreshToken;
         user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
 
-        await userRepository.UpdateAsync(user);
+        await _userRepository.UpdateUserAsync(user);
 
         return refreshToken;
     }
@@ -135,7 +145,7 @@ public class AuthService(IUserRepository userRepository, IConfiguration configur
 
     private async Task<UserEntity?> ValidateRefreshTokenAsync(long userId, string refreshToken)
     {
-        var user = await userRepository.GetByIdAsync(userId);
+        var user = await _userRepository.GetUserByIdAsync(userId);
         if (user is null ||
             user.RefreshToken != refreshToken ||
             user.RefreshTokenExpiryTime <= DateTime.UtcNow)
