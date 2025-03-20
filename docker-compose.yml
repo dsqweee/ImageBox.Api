@@ -1,0 +1,27 @@
+services:
+  imagebox.api:
+    image: ${DOCKER_REGISTRY-}imageboxapi
+    build:
+      context: .
+      dockerfile: ImageBox.Api/Dockerfile
+    ports:
+        - 8080:8080
+        - 8081:8081
+    networks:
+        - imagebox-net
+  postgres:
+    image: postgres:latest
+    container_name: 'imageboxdb'
+    environment:
+        - POSTGRES_PASSWORD=mysecretpassword
+    ports:
+        - 5434:5432
+    volumes:
+        - imagebox-data:/var/lib/postgresql/data
+    networks: 
+        - imagebox-net
+volumes:
+    imagebox-data:
+networks:
+    imagebox-net:
+        driver: bridge  

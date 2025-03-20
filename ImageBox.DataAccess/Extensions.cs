@@ -14,6 +14,8 @@ public static class Extensions
 
         AddDataBaseService(serviceCollection, config);
 
+        ApplyDatabaseMigrations(serviceCollection);
+
         return serviceCollection;
     }
 
@@ -31,8 +33,23 @@ public static class Extensions
         if (string.IsNullOrWhiteSpace(configConnectionString))
             throw new FormatException("The connection string is missing or incorrectly specified.");
 
-        serviceCollection.AddDbContext<ImageBoxDbContext>(options => {
+        serviceCollection.AddDbContext<ImageBoxDbContext>(options =>
+        {
             options.UseNpgsql(configConnectionString);
         });
+    }
+
+    public static void ApplyDatabaseMigrations(IServiceCollection serviceCollection)
+    {
+        var serviceProvider = serviceCollection.BuildServiceProvider();
+
+
+        using var scope = serviceProvider.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ImageBoxDbContext>();
+
+        if (dbContext.Database.GetPendingMigrations().Any())
+        {
+            dbContext.Database.Migrate();
+        }
     }
 }
